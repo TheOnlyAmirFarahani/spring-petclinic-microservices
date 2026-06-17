@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.customers.model.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -60,9 +61,20 @@ class PetResource {
         Owner owner = ownerRepository.findById(ownerId)
             .orElseThrow(() -> new ResourceNotFoundException("Owner " + ownerId + " not found"));
 
-        final Pet pet = new Pet();
+        if(owner.hasPetNamed(petRequest.name())){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pet with name " + petRequest.name() + " already exists");
+        } else if (owner.getPets().size() >= 5){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Too many pets");
+        }
+
+        //since petType is optional
+        PetType petType = petRepository.findPetTypeById(petRequest.typeId()).orElseThrow(() -> new ResourceNotFoundException("PetType " + petRequest.typeId() + " not found"));
+
+        Pet pet = new Pet();
+        pet.setType(petType);
+        applyNamingPolicy(pet, petRequest, petType);
         owner.addPet(pet);
-        return save(pet, petRequest);
+        return petRepository.save(pet);
     }
 
     @PutMapping("/owners/*/pets/{petId}")
@@ -95,6 +107,30 @@ class PetResource {
     private Pet findPetById(int petId) {
         return petRepository.findById(petId)
             .orElseThrow(() -> new ResourceNotFoundException("Pet " + petId + " not found"));
+    }
+
+    void applyNamingPolicy(Pet pet, PetRequest petRequest, PetType petType) {
+        String baseName = petRequest.name().trim();
+
+        switch (petType.getName().toLowerCase()) {               // switch statement
+            case "cat":
+            case "dog":
+                pet.setName(baseName + " " + pet.fetchOwnerLastName());
+                break;
+            case "snake":
+            case "lizard":
+                pet.setName(pet.fetchOwnerFirstName() + "'s " + baseName);
+                break;
+            case "bird":
+            case "hamster":
+                pet.setName("small " + baseName);
+                break;
+            default:
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Unsupported pet type: " + petType.getName());
+        }
+
+        pet.setBirthDate(petRequest.birthDate());
     }
 
 }

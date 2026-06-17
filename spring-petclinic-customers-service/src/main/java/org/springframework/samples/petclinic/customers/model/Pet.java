@@ -106,6 +106,9 @@ public class Pet {
         this.owner = owner;
     }
 
+    public String fetchOwnerFirstName() { return owner.getFirstName(); }
+    public String fetchOwnerLastName()  { return owner.getLastName(); }
+
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;

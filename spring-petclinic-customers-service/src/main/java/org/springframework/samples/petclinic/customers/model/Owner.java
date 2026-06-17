@@ -96,6 +96,17 @@ public class Owner {
             .toString();
     }
 
+    public boolean hasPetNamed(String name) {
+        boolean found = false;
+        for (Pet pet : getPetsInternal()) {
+            if (pet.getName() != null && pet.getName().equalsIgnoreCase(name)) {
+                found = true;
+                break;
+            }
+        }
+        return found;
+    }
+
     public Integer getId() {
         return this.id;
     }
